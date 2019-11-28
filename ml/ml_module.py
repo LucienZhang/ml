@@ -5,7 +5,7 @@
 # @Last Modified time: 2019-09-22 19:02:24
 from flask import Blueprint, render_template, request
 
-from ml import predict
+from ml.predictor import predict
 
 ml_api = Blueprint('ml_api', __name__, template_folder='templates')
 
@@ -18,11 +18,11 @@ def home():
 @ml_api.route('/mnist', methods=['GET', 'POST'])
 def mnist():
     if request.method == 'POST':
-        predictImg = request.files['predictImg']
+        image = request.files['predictImg']
         # filename = str(int(time.mktime(time.localtime()))) + '.png'
         # imgurl = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         # predictImg.save(imgurl)
-        result, prob = predict.mnist_predict(predictImg)
-        return str(result)
+        results, probabilities = predict('mnist', [image])
+        return str(results[0])
     else:
         return render_template("mnist.html")

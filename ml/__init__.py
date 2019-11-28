@@ -8,10 +8,11 @@ import os
 from flask import Flask, redirect, url_for
 from ml.ml_module import ml_api
 from ml.config import config
+from ml.predictor import init_predictor
 
 
 def init_app(app):
-    pass
+    init_predictor()
 
 
 def create_app(config_name=None):
