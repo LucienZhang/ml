@@ -5,9 +5,9 @@ import numpy as np
 from tensorflow import keras
 
 model_dir = Path(__file__).resolve().parent / 'model_train/models'
-model_names = ('lenet',)
+model_names = ('lenet_mnist', 'lenet_cifar10')
 models = {}
-implementors = {'mnist': 'lenet'}
+implementors = {'mnist': 'lenet_mnist'}
 
 
 def init_predictor():
@@ -18,7 +18,7 @@ def init_predictor():
 def predict(task, inputs):
     model_name = implementors[task]
     model = models[model_name]
-    if model_name == 'lenet':
+    if model_name == 'lenet_mnist':
         images = np.empty((0, 28, 28, 1), dtype='float32')
         for sample in inputs:
             img = Image.open(sample).resize((28, 28)).convert('L')

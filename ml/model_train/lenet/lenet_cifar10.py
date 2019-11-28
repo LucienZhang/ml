@@ -15,12 +15,12 @@ sys.path.append('..')
 from prepare import get_model_log_dir  # noqa
 from datasets import get_dataset  # noqa
 
-dataset_name = 'mnist'
+dataset_name = 'cifar10'
 model_name = 'lenet'
-model_dir, log_dir = get_model_log_dir(model_name)
+experiment_name = 'cifar10'
+model_dir, log_dir = get_model_log_dir(model_name, experiment_name)
 
 data, info = get_dataset(dataset_name)
-data_train, data_test = data['train'], data['test']
 
 BATCH_SIZE = 128
 VAL_RATE = 0.1
@@ -28,27 +28,37 @@ IMAGE_COUNT = info.splits['train'].num_examples
 VAL_COUNT = np.floor(VAL_RATE * IMAGE_COUNT)
 TRAIN_COUNT = IMAGE_COUNT - VAL_COUNT
 
-
-def preprocess(sample):
-    return tf.cast(sample['image'], tf.float32) / 255.0, sample['label']
-
-
-data_train = data_train.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-data_test = data_test.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
+data_train, data_test = data['train'], data['test']
 data_validation = data_train.take(VAL_COUNT)
 data_train = data_train.skip(VAL_COUNT)
+
 
 # data_train = data_train.apply(tf.data.experimental.shuffle_and_repeat(buffer_size=info.splits['train'].num_examples))
 # data_train = data_train.batch(32).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
+
+def preprocess(sample):
+    image, label = sample['image'], sample['label']
+    image = tf.cast(image, tf.float32)
+    mean, std = tf.nn.moments(image, axes=[0, 1, 2])
+    image = (image - mean) / std
+    # TODO: flip,shift
+    return image, label
+
+
 data_train = data_train.shuffle(buffer_size=TRAIN_COUNT)
-data_train = data_train.batch(BATCH_SIZE).repeat().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+data_train = data_train.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+data_train = data_train.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+data_train = data_train.repeat()
 
 data_validation = data_validation.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-data_test = data_test.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+data_validation = data_validation.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-inputs = keras.Input(shape=(28, 28, 1))
+data_test = data_test.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+data_test = data_test.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+# Model
+inputs = keras.Input(shape=(32, 32, 3))
 x = Conv2D(6, (5, 5), activation='relu', kernel_initializer='he_normal')(inputs)
 x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 x = Conv2D(16, (5, 5), activation='relu', kernel_initializer='he_normal')(x)
@@ -66,9 +76,17 @@ model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd, metrics=['a
 tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
 callbacks = [tb_cb]
 
+# model.fit(data_train, epochs=2, steps_per_epoch=5, callbacks=callbacks,
+#           validation_data=data_validation)
+
 model.fit(data_train, epochs=50, steps_per_epoch=np.ceil(TRAIN_COUNT / BATCH_SIZE), callbacks=callbacks,
           validation_data=data_validation)
 
 model.evaluate(data_test)
 
-model.save(model_dir / (model_name + '.h5'))
+model_file_name = model_name
+if experiment_name:
+    model_file_name += '_' + experiment_name
+model_file_name += '.h5'
+
+model.save(model_dir / model_file_name)
