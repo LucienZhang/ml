@@ -7,7 +7,7 @@ from flask import Blueprint, render_template, request
 
 from ml.predictor import predict
 
-ml_api = Blueprint('ml_api', __name__, template_folder='templates')
+ml_api = Blueprint('ml_api', __name__, template_folder='templates', static_folder='static')
 
 
 @ml_api.route('/')
