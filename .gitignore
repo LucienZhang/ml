@@ -107,4 +107,4 @@ venv.bak/
 #!**/*.sh
 storage/
 logs/
-models/
+*.h5
