@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <title>MNIST</title>
   <meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/mnist.css') }}">
+  <link rel="stylesheet" href="{{ url_for('ml_api.static', filename='css/mnist.css') }}">
 </head>
 
 <body onselectstart="return false">
@@ -30,8 +30,8 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='js/signature_pad.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/mnist.js') }}"></script>
+  <script src="{{ url_for('ml_api.static', filename='js/signature_pad.js') }}"></script>
+  <script src="{{ url_for('ml_api.static', filename='js/mnist.js') }}"></script>
 </body>
 
 </html>
