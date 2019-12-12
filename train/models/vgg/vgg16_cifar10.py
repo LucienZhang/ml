@@ -1,4 +1,4 @@
-# paper: http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf
+# paper: https://arxiv.org/abs/1409.1556
 
 import os
 import sys
@@ -16,8 +16,8 @@ from prepare import get_model_log_dir  # noqa
 from datasets import get_dataset  # noqa
 
 dataset_name = 'cifar10'
-model_name = 'lenet'
-experiment_name = 'cifar10'
+model_name = 'vgg16'
+experiment_name = 'cifar10_aug'
 model_dir, log_dir = get_model_log_dir(model_name, experiment_name)
 
 data, info = get_dataset(dataset_name)
@@ -42,12 +42,24 @@ def preprocess(sample):
     image = tf.cast(image, tf.float32)
     mean, std = tf.nn.moments(image, axes=[0, 1, 2])
     image = (image - mean) / std
-    # TODO: flip,shift
+
     return image, label
+
+
+def augmentation(sample):
+    image, label = sample['image'], sample['label']
+    # image = tf.image.central_crop(image, central_fraction=0.8)
+    image = tf.image.random_flip_left_right(image)
+    # image = tf.keras.preprocessing.image.random_zoom(image, (0.2, 0.2))
+    # image = tf.keras.preprocessing.image.random_shift(image, 0.2, 0.2)
+    # image = tf.keras.preprocessing.image.random_shear(image, 20)
+    # image = tf.keras.preprocessing.image.random_rotation(image, 20)
+    return {'image': image, 'label': label}
 
 
 data_train = data_train.shuffle(buffer_size=TRAIN_COUNT)
 data_train = data_train.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+data_train = data_train.map(augmentation, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 data_train = data_train.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 data_train = data_train.repeat()
 
@@ -76,17 +88,17 @@ model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd, metrics=['a
 tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
 callbacks = [tb_cb]
 
-# model.fit(data_train, epochs=2, steps_per_epoch=5, callbacks=callbacks,
-#           validation_data=data_validation)
-
-model.fit(data_train, epochs=50, steps_per_epoch=np.ceil(TRAIN_COUNT / BATCH_SIZE), callbacks=callbacks,
+model.fit(data_train, epochs=2, steps_per_epoch=5, callbacks=callbacks,
           validation_data=data_validation)
+
+# model.fit(data_train, epochs=50, steps_per_epoch=np.ceil(TRAIN_COUNT / BATCH_SIZE), callbacks=callbacks,
+#           validation_data=data_validation)
 
 model.evaluate(data_test)
 
-model_file_name = model_name
-if experiment_name:
-    model_file_name += '_' + experiment_name
-model_file_name += '.h5'
-
-model.save(model_dir / model_file_name)
+# model_file_name = model_name
+# if experiment_name:
+#     model_file_name += '_' + experiment_name
+# model_file_name += '.h5'
+#
+# model.save(model_dir / model_file_name)

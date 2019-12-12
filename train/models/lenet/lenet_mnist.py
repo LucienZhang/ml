@@ -12,41 +12,34 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
 sys.path.append('..')
 
-from prepare import get_model_log_dir  # noqa
-from datasets import get_dataset  # noqa
+from train import get_model_dir, get_log_dir  # noqa
+from train.datasets import get_dataset  # noqa
 
 dataset_name = 'mnist'
 model_name = 'lenet'
-experiment_name = 'mnist'
-model_dir, log_dir = get_model_log_dir(model_name, experiment_name)
+experiment_name = 'mnist1'
+model_dir = get_model_dir()
+log_dir = get_log_dir(model_name, experiment_name)
 
-data, info = get_dataset(dataset_name)
+model_file_name = model_name
+if experiment_name:
+    model_file_name += '_' + experiment_name
+model_file_name += '.h5'
+model_path = model_dir / model_file_name
 
 BATCH_SIZE = 128
-VAL_RATE = 0.1
-IMAGE_COUNT = info.splits['train'].num_examples
-VAL_COUNT = np.floor(VAL_RATE * IMAGE_COUNT)
-TRAIN_COUNT = IMAGE_COUNT - VAL_COUNT
+EPOCHS = 50
 
+data, info = get_dataset(dataset_name)
 data_train, data_test = data['train'], data['test']
-data_validation = data_train.take(VAL_COUNT)
-data_train = data_train.skip(VAL_COUNT)
 
 
-# data_train = data_train.apply(tf.data.experimental.shuffle_and_repeat(buffer_size=info.splits['train'].num_examples))
-# data_train = data_train.batch(32).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-
-def preprocess(sample):
-    return tf.cast(sample['image'], tf.float32) / 255.0, sample['label']
+def preprocess(image, label):
+    return tf.cast(image, tf.float32) / 255.0, label
 
 
-data_train = data_train.shuffle(buffer_size=TRAIN_COUNT)
 data_train = data_train.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 data_train = data_train.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-data_train = data_train.repeat()
-
-data_validation = data_validation.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-data_validation = data_validation.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 data_test = data_test.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 data_test = data_test.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -70,14 +63,6 @@ model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd, metrics=['a
 tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
 callbacks = [tb_cb]
 
-model.fit(data_train, epochs=50, steps_per_epoch=np.ceil(TRAIN_COUNT / BATCH_SIZE), callbacks=callbacks,
-          validation_data=data_validation)
+model.fit(data_train, epochs=EPOCHS, callbacks=callbacks, validation_data=data_test)
 
-model.evaluate(data_test)
-
-model_file_name = model_name
-if experiment_name:
-    model_file_name += '_' + experiment_name
-model_file_name += '.h5'
-
-model.save(model_dir / model_file_name)
+# model.save(model_path)

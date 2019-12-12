@@ -1,13 +1,14 @@
-from pathlib import Path
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from train import get_base_dir
 
 
-def get_dataset(dataset_name):
-    base_path = Path(__file__).resolve().parent.parent
-    dataset_dir = base_path / 'storage'
+def get_dataset(dataset_name, as_supervised=True):
+    base_path = get_base_dir()
+    dataset_dir = base_path / 'datasets/storage'
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    data, info = tfds.load(name=dataset_name, data_dir=dataset_dir, with_info=True, shuffle_files=True)
+    data, info = tfds.load(name=dataset_name, data_dir=dataset_dir, with_info=True, shuffle_files=True,
+                           as_supervised=as_supervised)
     if dataset_name == 'mnist':
         data_train, data_test = data['train'], data['test']
         assert isinstance(data_train, tf.data.Dataset)

@@ -3,8 +3,9 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 from tensorflow import keras
+from train import get_model_dir
 
-model_dir = Path(__file__).resolve().parent / 'model_train/models'
+model_dir = get_model_dir()
 model_names = ('lenet_mnist', 'lenet_cifar10')
 models = {}
 implementors = {'mnist': 'lenet_mnist'}
@@ -30,6 +31,6 @@ def predict(task, inputs):
         prob_vec = model.predict(images)
         results = np.argmax(prob_vec, axis=1)
         probabilities = np.max(prob_vec, axis=1)
+        return results, probabilities
     else:
         raise NameError(f'model name {model_name} not found!')
-    return results, probabilities
