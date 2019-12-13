@@ -9,12 +9,12 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, ZeroPa
 from tensorflow.keras.callbacks import LearningRateScheduler, TensorBoard, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.regularizers import l2
-from train.datasets import get_data_path
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
 sys.path.append('../../..')
 
 from train import get_model_dir, get_log_dir  # noqa
+from train.datasets import get_data_path  # noqa
 
 dataset_name = 'fruits'
 model_name = 'alex'
@@ -60,41 +60,41 @@ inputs = keras.Input(shape=(100, 100, 3))
 x = ZeroPadding2D(padding=6)(inputs)
 
 # Stage 1
-x = Conv2D(96, (4, 4), strides=(2, 2), init='he_normal')(x)
+x = Conv2D(96, (4, 4), strides=(2, 2), kernel_initializer='he_normal')(x)
 x = BatchNormalization()(x)
 x = Activation('relu')(x)
 x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
 # Stage 2
-x = Conv2D(256, (5, 5), padding='same', init='he_normal')(x)
+x = Conv2D(256, (5, 5), padding='same', kernel_initializer='he_normal')(x)
 x = BatchNormalization()(x)
 x = Activation('relu')(x)
 x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
 # Stage 3
-x = Conv2D(384, (3, 3), padding='same', init='he_normal')(x)
+x = Conv2D(384, (3, 3), padding='same', kernel_initializer='he_normal')(x)
 x = Activation('relu')(x)
 
 # Stage 4
-x = Conv2D(384, (3, 3), padding='same', init='he_normal')(x)
+x = Conv2D(384, (3, 3), padding='same', kernel_initializer='he_normal')(x)
 x = Activation('relu')(x)
 
 # Stage 5
-x = Conv2D(256, (3, 3), padding='same', init='he_normal')(x)
+x = Conv2D(256, (3, 3), padding='same', kernel_initializer='he_normal')(x)
 x = Activation('relu')(x)
 x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 x = Flatten()(x)
 
 # Stage 6
-x = Dense(4096, activation='relu', init='he_normal')(x)
+x = Dense(4096, activation='relu', kernel_initializer='he_normal')(x)
 x = Dropout(0.5)(x)
 
 # Stage 7
-x = Dense(4096, activation='relu', init='he_normal')(x)
+x = Dense(4096, activation='relu', kernel_initializer='he_normal')(x)
 x = Dropout(0.5)(x)
 
 # Stage 8
-outputs = Dense(num_classes, activation='softmax', init='he_normal')(x)
+outputs = Dense(num_classes, activation='softmax', kernel_initializer='he_normal')(x)
 
 model = Model(inputs=inputs, outputs=outputs)
 
