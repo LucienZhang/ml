@@ -17,7 +17,7 @@ from train import get_model_dir, get_log_dir  # noqa
 
 dataset_name = 'cifar10'
 model_name = 'lenet'
-experiment_name = 'cifar10_my'
+experiment_name = 'cifar10'
 model_dir = get_model_dir()
 log_dir = get_log_dir(model_name, experiment_name)
 

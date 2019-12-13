@@ -112,7 +112,8 @@ def scheduler(epoch):
 
 change_lr = LearningRateScheduler(scheduler)
 tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
-ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.hdf5'), save_weights_only=True, save_freq=50)
+ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.hdf5'), monitor='val_acc', save_weights_only=True,
+                          period=50)
 callbacks = [change_lr, tb_cb, ckpt_cb]
 
 model.fit_generator(train_data,
