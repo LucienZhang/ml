@@ -2,20 +2,18 @@
 
 import os
 import sys
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Model, optimizers
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.callbacks import LearningRateScheduler, TensorBoard
-import numpy as np
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
-sys.path.append('..')
+sys.path.append('../../..')
 
-from prepare import get_model_log_dir  # noqa
-from datasets import get_dataset  # noqa
+from train import get_model_dir, get_log_dir  # noqa
 
-dataset_name = 'cifar10'
+dataset_name = 'fruits360'
 model_name = 'vgg16'
 experiment_name = 'cifar10_aug'
 model_dir, log_dir = get_model_log_dir(model_name, experiment_name)
