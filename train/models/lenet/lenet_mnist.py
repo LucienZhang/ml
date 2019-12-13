@@ -10,14 +10,14 @@ from tensorflow.keras.callbacks import LearningRateScheduler, TensorBoard
 import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
-sys.path.append('..')
+sys.path.append('../../..')
 
 from train import get_model_dir, get_log_dir  # noqa
 from train.datasets import get_dataset  # noqa
 
 dataset_name = 'mnist'
 model_name = 'lenet'
-experiment_name = 'mnist1'
+experiment_name = 'mnist'
 model_dir = get_model_dir()
 log_dir = get_log_dir(model_name, experiment_name)
 
@@ -65,4 +65,4 @@ callbacks = [tb_cb]
 
 model.fit(data_train, epochs=EPOCHS, callbacks=callbacks, validation_data=data_test)
 
-# model.save(model_path)
+model.save(model_path)
