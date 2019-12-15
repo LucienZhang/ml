@@ -28,7 +28,7 @@ if experiment_name:
 model_file_name += '.h5'
 model_path = model_dir / model_file_name
 
-BATCH_SIZE = 2048
+BATCH_SIZE = 512
 EPOCHS = 200
 
 num_classes = 120
@@ -44,7 +44,7 @@ train_gen = ImageDataGenerator(rescale=1 / 255.,
                                fill_mode='constant',
                                cval=0.,
                                horizontal_flip=True,
-                               vertical_flip=True,
+                               # vertical_flip=True,
                                dtype='float32')
 train_data = train_gen.flow_from_directory(train_path, target_size=(100, 100), class_mode='categorical',
                                            batch_size=BATCH_SIZE)
@@ -60,37 +60,37 @@ inputs = keras.Input(shape=(100, 100, 3))
 x = ZeroPadding2D(padding=6)(inputs)
 
 # Stage 1
-x = Conv2D(96, (4, 4), strides=(2, 2), kernel_initializer='he_normal')(x)
+x = Conv2D(12, (4, 4), strides=(2, 2), kernel_initializer='he_normal')(x)  # 96
 x = BatchNormalization()(x)
 x = Activation('relu')(x)
 x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
 # Stage 2
-x = Conv2D(256, (5, 5), padding='same', kernel_initializer='he_normal')(x)
+x = Conv2D(32, (5, 5), padding='same', kernel_initializer='he_normal')(x)  # 256
 x = BatchNormalization()(x)
 x = Activation('relu')(x)
 x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
 # Stage 3
-x = Conv2D(384, (3, 3), padding='same', kernel_initializer='he_normal')(x)
+x = Conv2D(48, (3, 3), padding='same', kernel_initializer='he_normal')(x)  # 384
 x = Activation('relu')(x)
 
 # Stage 4
-x = Conv2D(384, (3, 3), padding='same', kernel_initializer='he_normal')(x)
+x = Conv2D(48, (3, 3), padding='same', kernel_initializer='he_normal')(x)  # 384
 x = Activation('relu')(x)
 
 # Stage 5
-x = Conv2D(256, (3, 3), padding='same', kernel_initializer='he_normal')(x)
+x = Conv2D(32, (3, 3), padding='same', kernel_initializer='he_normal')(x)  # 256
 x = Activation('relu')(x)
 x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 x = Flatten()(x)
 
 # Stage 6
-x = Dense(4096, activation='relu', kernel_initializer='he_normal')(x)
+x = Dense(512, activation='relu', kernel_initializer='he_normal')(x)  # 4096
 x = Dropout(0.5)(x)
 
 # Stage 7
-x = Dense(4096, activation='relu', kernel_initializer='he_normal')(x)
+x = Dense(512, activation='relu', kernel_initializer='he_normal')(x)  # 4096
 x = Dropout(0.5)(x)
 
 # Stage 8
@@ -121,6 +121,4 @@ model.fit_generator(train_data,
                     callbacks=callbacks,
                     validation_data=test_data)
 
-# model.fit(data_train, epochs=EPOCHS, callbacks=callbacks, validation_data=data_test)
-
-# model.save(model_path)
+model.save(model_path)
