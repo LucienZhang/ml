@@ -17,7 +17,7 @@ from train import get_model_dir, get_log_dir  # noqa
 from train.datasets import get_data_path  # noqa
 
 dataset_name = 'fruits'
-model_name = 'alex'
+model_name = 'alex_small'
 experiment_name = 'fruits'
 model_dir = get_model_dir()
 log_dir = get_log_dir(model_name, experiment_name)
@@ -44,7 +44,6 @@ train_gen = ImageDataGenerator(rescale=1 / 255.,
                                fill_mode='constant',
                                cval=0.,
                                horizontal_flip=True,
-                               # vertical_flip=True,
                                dtype='float32')
 train_data = train_gen.flow_from_directory(train_path, target_size=(100, 100), class_mode='categorical',
                                            batch_size=BATCH_SIZE)
@@ -56,6 +55,8 @@ test_data = test_gen.flow_from_directory(test_path, target_size=(100, 100), clas
 ##########
 # Model
 ##########
+# We are using a smaller size of AlexNet, basically we reduced the model to one-eighth of the original
+
 inputs = keras.Input(shape=(100, 100, 3))
 x = ZeroPadding2D(padding=6)(inputs)
 
