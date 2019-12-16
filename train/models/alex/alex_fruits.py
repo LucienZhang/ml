@@ -28,7 +28,7 @@ if experiment_name:
 model_file_name += '.h5'
 model_path = model_dir / model_file_name
 
-BATCH_SIZE = 2048
+BATCH_SIZE = 512
 EPOCHS = 200
 
 num_classes = 120
