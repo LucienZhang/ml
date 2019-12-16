@@ -1,0 +1,102 @@
+{% extends 'nav_foot.html' %}
+
+{% block head %}
+    <meta name="description" content="ML Applications">
+    <title>Machine Learning Applications</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='css/ml.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div id="ml-content">
+        <div class="container-fluid">
+            <div class="row">
+                <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                    <div class="sidebar-sticky">
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                            <span>Image Classification</span>
+                        </h6>
+                        <ul class="nav flex-column">
+{#                            <li class="nav-item">#}
+{#                                <a class="nav-link active" href="#">#}
+{#                                    Dashboard <span class="sr-only">(current)</span>#}
+{#                                </a>#}
+{#                            </li>#}
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    Handwritten Digit
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    Cifar 10
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    Fruits & Vegetables
+                                </a>
+                            </li>
+
+                        </ul>
+
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                            <span>Image Detection</span>
+                        </h6>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    YOLO
+                                </a>
+                            </li>
+                        </ul>
+
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                            <span>Semantic Segmentation</span>
+                        </h6>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    FCN
+                                </a>
+                            </li>
+                        </ul>
+
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                            <span>Instance Segmentation</span>
+                        </h6>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">
+                                    Mask R-CNN
+                                </a>
+                            </li>
+                        </ul>
+
+
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                            <span>Sentiment Classification</span>
+                        </h6>
+                        <ul class="nav flex-column mb-2">
+                            <li class="nav-item">
+                                <a class="nav-link" href="https://getbootstrap.com/docs/4.4/examples/dashboard/#">
+                                    Current
+                                </a>
+                            </li>
+
+                        </ul>
+                    </div>
+                </nav>
+
+                <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4 ml-main-content">
+                    {% block ml_content %}{% endblock %}
+                </main>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+
+{% block js %}
+    <script type="text/javascript" src="{{ url_for('.static', filename='js/ml.js') }}"></script>
+{% endblock %}
