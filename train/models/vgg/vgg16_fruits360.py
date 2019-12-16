@@ -13,61 +13,55 @@ sys.path.append('../../..')
 
 from train import get_model_dir, get_log_dir  # noqa
 
+# https://www.kaggle.com/moltean/fruits
 dataset_name = 'fruits360'
 model_name = 'vgg16'
-experiment_name = 'cifar10_aug'
-model_dir, log_dir = get_model_log_dir(model_name, experiment_name)
+experiment_name = 'fruits360'
+model_dir = get_model_dir()
+log_dir = get_log_dir(model_name, experiment_name)
 
-data, info = get_dataset(dataset_name)
+model_file_name = model_name
+if experiment_name:
+    model_file_name += '_' + experiment_name
+model_file_name += '.h5'
+model_path = model_dir / model_file_name
 
 BATCH_SIZE = 128
-VAL_RATE = 0.1
-IMAGE_COUNT = info.splits['train'].num_examples
-VAL_COUNT = np.floor(VAL_RATE * IMAGE_COUNT)
-TRAIN_COUNT = IMAGE_COUNT - VAL_COUNT
+EPOCHS = 200
 
-data_train, data_test = data['train'], data['test']
-data_validation = data_train.take(VAL_COUNT)
-data_train = data_train.skip(VAL_COUNT)
+num_classes = 10
 
+##########
+# Data
+##########
 
-# data_train = data_train.apply(tf.data.experimental.shuffle_and_repeat(buffer_size=info.splits['train'].num_examples))
-# data_train = data_train.batch(32).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+# (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+# y_train = keras.utils.to_categorical(y_train, num_classes)
+# y_test = keras.utils.to_categorical(y_test, num_classes)
+# x_train = x_train.astype('float32')
+# x_test = x_test.astype('float32')
+#
+# train_gen = ImageDataGenerator(featurewise_center=True,
+#                                featurewise_std_normalization=True,
+#                                width_shift_range=0.125,
+#                                height_shift_range=0.125,
+#                                fill_mode='constant',
+#                                cval=0.,
+#                                horizontal_flip=True)
+# train_gen.fit(x_train)
+#
+# test_gen = ImageDataGenerator(featurewise_center=True,
+#                               featurewise_std_normalization=True)
+# test_gen.fit(x_train)
 
-
-def preprocess(sample):
-    image, label = sample['image'], sample['label']
-    image = tf.cast(image, tf.float32)
-    mean, std = tf.nn.moments(image, axes=[0, 1, 2])
-    image = (image - mean) / std
-
-    return image, label
-
-
-def augmentation(sample):
-    image, label = sample['image'], sample['label']
-    # image = tf.image.central_crop(image, central_fraction=0.8)
-    image = tf.image.random_flip_left_right(image)
-    # image = tf.keras.preprocessing.image.random_zoom(image, (0.2, 0.2))
-    # image = tf.keras.preprocessing.image.random_shift(image, 0.2, 0.2)
-    # image = tf.keras.preprocessing.image.random_shear(image, 20)
-    # image = tf.keras.preprocessing.image.random_rotation(image, 20)
-    return {'image': image, 'label': label}
-
-
-data_train = data_train.shuffle(buffer_size=TRAIN_COUNT)
-data_train = data_train.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-data_train = data_train.map(augmentation, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-data_train = data_train.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-data_train = data_train.repeat()
-
-data_validation = data_validation.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-data_validation = data_validation.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-data_test = data_test.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-data_test = data_test.map(preprocess, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
+##########
 # Model
+##########
+inputs=keras.Input(shape=(100,100,3))
+
+
+
+
 inputs = keras.Input(shape=(32, 32, 3))
 x = Conv2D(6, (5, 5), activation='relu', kernel_initializer='he_normal')(inputs)
 x = MaxPooling2D((2, 2), strides=(2, 2))(x)
@@ -81,22 +75,28 @@ outputs = Dense(10, activation='softmax', kernel_initializer='he_normal')(x)
 model = Model(inputs=inputs, outputs=outputs)
 
 sgd = optimizers.SGD(lr=0.01, momentum=0.9, nesterov=True)
-model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
+model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+
+
+def scheduler(epoch):
+    if epoch < 100:
+        return 0.01
+    elif epoch < 150:
+        return 0.005
+    else:
+        return 0.001
+
+
+change_lr = LearningRateScheduler(scheduler)
 tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
-callbacks = [tb_cb]
+callbacks = [change_lr, tb_cb]
 
-model.fit(data_train, epochs=2, steps_per_epoch=5, callbacks=callbacks,
-          validation_data=data_validation)
+model.fit_generator(train_gen.flow(x_train, y_train, batch_size=BATCH_SIZE),
+                    epochs=EPOCHS,
+                    callbacks=callbacks,
+                    validation_data=test_gen.flow(x_test, y_test, batch_size=BATCH_SIZE))
 
-# model.fit(data_train, epochs=50, steps_per_epoch=np.ceil(TRAIN_COUNT / BATCH_SIZE), callbacks=callbacks,
-#           validation_data=data_validation)
+# model.fit(data_train, epochs=EPOCHS, callbacks=callbacks, validation_data=data_test)
 
-model.evaluate(data_test)
-
-# model_file_name = model_name
-# if experiment_name:
-#     model_file_name += '_' + experiment_name
-# model_file_name += '.h5'
-#
-# model.save(model_dir / model_file_name)
+model.save(model_path)
