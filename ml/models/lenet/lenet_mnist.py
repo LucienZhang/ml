@@ -12,8 +12,8 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
 sys.path.append('../../..')
 
-from train import get_model_dir, get_log_dir  # noqa
-from train.datasets import get_dataset  # noqa
+from ml import get_model_dir, get_log_dir  # noqa
+from ml.datasets import get_dataset  # noqa
 
 dataset_name = 'mnist'
 model_name = 'lenet'

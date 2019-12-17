@@ -13,7 +13,7 @@ from tensorflow.keras.datasets import cifar10
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
 sys.path.append('../../..')
 
-from train import get_model_dir, get_log_dir  # noqa
+from ml import get_model_dir, get_log_dir  # noqa
 
 dataset_name = 'cifar10'
 model_name = 'lenet'

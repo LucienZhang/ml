@@ -13,8 +13,8 @@ from tensorflow.keras.regularizers import l2
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
 sys.path.append('../../..')
 
-from train import get_model_dir, get_log_dir  # noqa
-from train.datasets import get_data_path  # noqa
+from ml import get_model_dir, get_log_dir  # noqa
+from ml.datasets import get_data_path  # noqa
 
 dataset_name = 'fruits'
 model_name = 'alex_small'

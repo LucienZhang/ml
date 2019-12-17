@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from train import get_base_dir
+from ml import get_base_dir
 
 
 def get_dataset(dataset_name, as_supervised=True):
