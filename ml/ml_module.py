@@ -15,8 +15,8 @@ def home():
     return render_template("ml.html")
 
 
-@ml_api.route('/mnist', methods=['GET', 'POST'])
-def mnist():
+@ml_api.route('/mnist-canvas', methods=['GET', 'POST'])
+def mnist_canvas():
     if request.method == 'POST':
         image = request.files['predictImg']
         # filename = str(int(time.mktime(time.localtime()))) + '.png'
@@ -25,4 +25,9 @@ def mnist():
         results, probabilities = predict('mnist', [image])
         return str(results[0])
     else:
-        return render_template("mnist.html")
+        return render_template("mnist-canvas.html")
+
+
+@ml_api.route('mnist')
+def mnist():
+    return render_template('mnist.html')
