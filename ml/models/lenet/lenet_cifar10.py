@@ -7,17 +7,17 @@ from tensorflow import keras
 from tensorflow.keras import Model, optimizers
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.callbacks import LearningRateScheduler, TensorBoard
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.datasets import cifar10
+import tensorflow_datasets as tfds
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # to suppress AVX2 warning
 sys.path.append('../../..')
 
 from ml import get_model_dir, get_log_dir  # noqa
+from ml.datasets import get_dataset  # noqa
 
 dataset_name = 'cifar10'
 model_name = 'lenet'
-experiment_name = 'cifar10'
+experiment_name = 'cifar10_rewrite_test'
 model_dir = get_model_dir()
 log_dir = get_log_dir(model_name, experiment_name)
 
@@ -30,30 +30,52 @@ model_path = model_dir / model_file_name
 BATCH_SIZE = 128
 EPOCHS = 200
 
-num_classes = 10
+data, info = get_dataset(dataset_name)
+NUM_CLASS = info.features['label'].num_classes
+NUM_TRAIN = info.splits['train'].num_examples
+NUM_VAL = info.splits['test'].num_examples
 
 ##########
 # Data
 ##########
 
-(x_train, y_train), (x_test, y_test) = cifar10.load_data()
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
+data_train, data_test = data['train'], data['test']
+data_train = data_train.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+data_test = data_test.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-train_gen = ImageDataGenerator(featurewise_center=True,
-                               featurewise_std_normalization=True,
-                               width_shift_range=0.125,
-                               height_shift_range=0.125,
-                               fill_mode='constant',
-                               cval=0.,
-                               horizontal_flip=True)
-train_gen.fit(x_train)
 
-test_gen = ImageDataGenerator(featurewise_center=True,
-                              featurewise_std_normalization=True)
-test_gen.fit(x_train)
+def normalization(images):
+    mean = [125.3, 123.0, 113.9]
+    std = [63.0, 62.1, 66.7]
+    images = images.astype('float32')
+    images = (images - mean) / std
+    return images
+
+
+def augmentation(image):
+    image = keras.preprocessing.image.random_shift(image, 0.125, 0.125, row_axis=0, col_axis=1, channel_axis=2,
+                                                   fill_mode='constant', cval=0.0)
+    image = tf.image.random_flip_left_right(image)
+    return image
+
+
+def train_gen(dataset, num_class):
+    while True:
+        for images, labels in tfds.as_numpy(dataset):
+            labels = keras.utils.to_categorical(labels, num_class)
+            images = normalization(images)
+            for i in range(len(images)):
+                images[i] = augmentation(images[i])
+            yield (images, labels)
+
+
+def test_gen(dataset, num_class):
+    while True:
+        for images, labels in tfds.as_numpy(dataset):
+            labels = keras.utils.to_categorical(labels, num_class)
+            images = normalization(images)
+            yield (images, labels)
+
 
 ##########
 # Model
@@ -88,11 +110,12 @@ change_lr = LearningRateScheduler(scheduler)
 tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
 callbacks = [change_lr, tb_cb]
 
-model.fit_generator(train_gen.flow(x_train, y_train, batch_size=BATCH_SIZE),
+model.fit_generator(train_gen(data_train, NUM_CLASS),
                     epochs=EPOCHS,
                     callbacks=callbacks,
-                    validation_data=test_gen.flow(x_test, y_test, batch_size=BATCH_SIZE))
-
-# model.fit(data_train, epochs=EPOCHS, callbacks=callbacks, validation_data=data_test)
+                    validation_data=test_gen(data_test, NUM_CLASS),
+                    steps_per_epoch=NUM_TRAIN // BATCH_SIZE,
+                    validation_steps=NUM_VAL // BATCH_SIZE,
+                    )
 
 model.save(model_path)
