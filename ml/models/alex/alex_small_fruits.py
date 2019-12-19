@@ -36,7 +36,8 @@ num_classes = 120
 ##########
 # Data
 ##########
-train_path, test_path = get_data_path('fruits')
+data_path = get_data_path('fruits')
+train_path, test_path = data_path / 'Training', data_path / 'Test'
 
 train_gen = ImageDataGenerator(rescale=1 / 255.,
                                width_shift_range=0.125,

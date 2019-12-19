@@ -40,12 +40,11 @@ def get_dataset(dataset_name, as_supervised=True):
 
 
 dataset_urls = {
-    'fruits': ('fruits-360_dataset/fruits-360/Training', 'fruits-360_dataset/fruits-360/Test')
+    'fruits': 'fruits-360_dataset/fruits-360/'
 }
 
 
 def get_data_path(dataset_name):
     base_path = get_base_dir()
     dataset_dir = base_path / 'datasets/storage'
-    training, test = dataset_urls[dataset_name]
-    return dataset_dir / training, dataset_dir / test
+    return dataset_dir / dataset_urls[dataset_name]
