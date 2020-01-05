@@ -66,7 +66,7 @@ def train_gen(dataset, num_class):
             images = normalization(images)
             for i in range(len(images)):
                 images[i] = augmentation(images[i])
-            yield (images, labels)
+            yield images, labels
 
 
 def test_gen(dataset, num_class):
@@ -74,7 +74,7 @@ def test_gen(dataset, num_class):
         for images, labels in tfds.as_numpy(dataset):
             labels = keras.utils.to_categorical(labels, num_class)
             images = normalization(images)
-            yield (images, labels)
+            yield images, labels
 
 
 ##########
