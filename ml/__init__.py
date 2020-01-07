@@ -17,3 +17,9 @@ def get_log_dir(model_name, experiment_name):
     log_dir = get_base_dir() / 'logs' / model_name
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
+
+
+def get_image_dir():
+    image_dir = get_base_dir() / 'images'
+    image_dir.mkdir(parents=True, exist_ok=True)
+    return image_dir
