@@ -24,9 +24,42 @@ model_file_name += '.h5'
 model_path = model_dir / model_file_name
 
 
-##########
+#############################
+# Utils
+#############################
+def load_img(path_to_img):
+    max_dim = 512
+    img = tf.io.read_file(path_to_img)
+    img = tf.image.decode_image(img, channels=3)
+    img = tf.image.convert_image_dtype(img, tf.float32)
+
+    shape = tf.cast(tf.shape(img)[:-1], tf.float32)
+    long_dim = max(shape)
+    scale = max_dim / long_dim
+
+    new_shape = tf.cast(shape * scale, tf.int32)
+
+    img = tf.image.resize(img, new_shape)
+    img = img[tf.newaxis, :]
+    return img
+
+
+def tensor_to_image(tensor):
+    tensor = tensor * 255
+    tensor = np.array(tensor, dtype=np.uint8)
+    if np.ndim(tensor) > 3:
+        assert tensor.shape[0] == 1
+        tensor = tensor[0]
+    return PIL.Image.fromarray(tensor)
+
+
+def clip_0_1(image):
+    return tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=1.0)
+
+
+#############################
 # Model
-##########
+#############################
 def gram_matrix(input_tensor):
     result = tf.linalg.einsum('bijc,bijd->bcd', input_tensor, input_tensor)
     input_shape = tf.shape(input_tensor)
@@ -48,7 +81,7 @@ class StyleContentModel(keras.models.Model):
         vgg = tf.keras.applications.VGG19(include_top=False, weights='imagenet')
         vgg.trainable = False
         wanted_layers = [vgg.get_layer(name).output for name in wanted_layer_names]
-        self.backbone = tf.keras.Model([vgg.input], wanted_layers)
+        self.backbone = tf.keras.Model(vgg.input, wanted_layers)
         self.backbone.trainable = False
         self.style_layer_names = style_layer_names
         self.content_layer_names = content_layer_names
@@ -68,46 +101,17 @@ class StyleContentModel(keras.models.Model):
 
         style_dict = {style_name: value
                       for style_name, value
-                      in zip(self.style_layers, style_outputs)}
+                      in zip(self.style_layer_names, style_outputs)}
 
         content_dict = {content_name: value
                         for content_name, value
-                        in zip(self.content_layers, content_outputs)}
+                        in zip(self.content_layer_names, content_outputs)}
 
         return {'content': content_dict, 'style': style_dict}
 
 
-def load_img(path_to_img):
-    max_dim = 512
-    img = tf.io.read_file(path_to_img)
-    img = tf.image.decode_image(img, channels=3)
-    img = tf.image.convert_image_dtype(img, tf.float32)
-
-    shape = tf.cast(tf.shape(img)[:-1], tf.float32)
-    long_dim = max(shape)
-    scale = max_dim / long_dim
-
-    new_shape = tf.cast(shape * scale, tf.int32)
-
-    img = tf.image.resize(img, new_shape)
-    img = img[tf.newaxis, :]
-    return img
-
-
-def clip_0_1(image):
-    return tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=1.0)
-
-
-def tensor_to_image(tensor):
-    tensor = tensor * 255
-    tensor = np.array(tensor, dtype=np.uint8)
-    if np.ndim(tensor) > 3:
-        assert tensor.shape[0] == 1
-        tensor = tensor[0]
-    return PIL.Image.fromarray(tensor)
-
-
-def style_content_loss(outputs, style_weight, num_style_layers, content_weight, num_content_layers):
+def style_content_loss(outputs, style_weight, style_targets, num_style_layers,
+                       content_weight, content_targets, num_content_layers):
     style_outputs = outputs['style']
     content_outputs = outputs['content']
     style_loss = tf.add_n([tf.reduce_mean((style_outputs[name] - style_targets[name]) ** 2)
@@ -136,10 +140,10 @@ def get_train_step(extractor, loss_func, optimizer):
 
 
 if __name__ == '__main__':
-    content_path = get_image_dir() / 'dog.jpg'
-    style_path = get_image_dir() / 'style.jpg'
-    content_image = load_img(str(content_path))
-    style_image = load_img(str(style_path))
+    content_image_path = get_image_dir() / 'dog.jpg'
+    style_image_path = get_image_dir() / 'style.jpg'
+    content_image = load_img(str(content_image_path))
+    style_image = load_img(str(style_image_path))
 
     extractor = StyleContentModel()
     style_targets = extractor(style_image)['style']
@@ -156,18 +160,20 @@ if __name__ == '__main__':
     EPOCHS = 10
     STEPS_PER_EPOCH = 100
 
-    loss_func = partial(style_content_loss(style_weight=STYLE_WEIGHT, num_style_layers=extractor.num_style_layers,
-                                           content_weight=CONTENT_WEIGHT,
-                                           num_content_layers=extractor.num_content_layers))
+    loss_func = partial(style_content_loss, style_weight=STYLE_WEIGHT, style_targets=style_targets,
+                        num_style_layers=extractor.num_style_layers,
+                        content_weight=CONTENT_WEIGHT, content_targets=content_targets,
+                        num_content_layers=extractor.num_content_layers)
     train_step = get_train_step(extractor, loss_func, optimizer)
     ##############
     # Training
     ##############
+    print('Training')
     start = time.time()
     for epoch in range(EPOCHS):
         for step in range(STEPS_PER_EPOCH):
             train_step(image)
-            print(step, end='')
+            print(step, end='\r', flush=True)
         print(f"Train step: {(epoch + 1) * STEPS_PER_EPOCH}")
         tensor_to_image(image).save(f"{epoch}.jpg")
     end = time.time()
