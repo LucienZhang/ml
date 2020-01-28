@@ -1,2 +1,2 @@
 -r base.requirements.txt
-tensorflow-gpu==2.0.0
+tensorflow-gpu==2.0.1
