@@ -111,4 +111,5 @@ logs
 logs/
 weights
 weights/
+tmp/
 *.h5
