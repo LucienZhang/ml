@@ -88,6 +88,7 @@ def train():
         buffer_size=tf.data.experimental.AUTOTUNE)
 
     model = build_model()
+    model.load_weights(log_dir)
 
     def loss(labels, logits):
         return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
@@ -95,7 +96,8 @@ def train():
     model.compile(optimizer='adam', loss=loss)
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=str(log_dir / 'ckpt_{epoch}'),
-        save_weights_only=True)
+        save_weights_only=True,
+        period=5)
 
     model.fit(dataset, epochs=EPOCHS, steps_per_epoch=100, callbacks=[checkpoint_callback])
 
@@ -133,8 +135,7 @@ def generate_text(model, start_string):
 
 
 def generate():
-    model = build_model()
-    model.load_weights(tf.train.latest_checkpoint(log_dir))
+    model = tf.keras.models.load_model(model_path)
     model.build(tf.TensorShape([1, None]))
     print(generate_text(model, start_string=u"昨天"))
 
