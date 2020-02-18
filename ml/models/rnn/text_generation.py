@@ -33,7 +33,7 @@ BUFFER_SIZE = 10000
 EPOCHS = 30
 NUM_CHARS = 560761
 
-tokenizer_path = model_dir / 'tokenizer.pickle'
+tokenizer_path = model_dir / 'shuihu_tokenizer.pickle'
 
 
 def get_lines():
@@ -52,16 +52,16 @@ def get_tokenizer():
             tokenizer = pickle.load(handle)
     else:
         lines = get_lines()
-        tokenizer = Tokenizer(num_words=NUM_VOCAB)
+        tokenizer = Tokenizer(num_words=NUM_VOCAB, oov_token='<OOV>')
         tokenizer.fit_on_texts(lines)
         with open(tokenizer_path, 'wb') as handle:
             pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
     return tokenizer
 
 
-def build_model():
+def build_model(batch_size):
     model = tf.keras.Sequential()
-    model.add(layers.Embedding(input_dim=NUM_VOCAB, output_dim=EMBEDDING_DIM, batch_input_shape=(BATCH_SIZE, None)))
+    model.add(layers.Embedding(input_dim=NUM_VOCAB, output_dim=EMBEDDING_DIM, batch_input_shape=(batch_size, None)))
     model.add(layers.GRU(1024,
                          return_sequences=True,
                          stateful=True,
@@ -87,8 +87,8 @@ def train():
     dataset = dataset.repeat().batch(BATCH_SIZE).prefetch(
         buffer_size=tf.data.experimental.AUTOTUNE)
 
-    model = build_model()
-    model.load_weights(log_dir)
+    model = build_model(BATCH_SIZE)
+    model.load_weights(str(log_dir))
 
     def loss(labels, logits):
         return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
@@ -100,12 +100,14 @@ def train():
         period=5)
 
     model.fit(dataset, epochs=EPOCHS, steps_per_epoch=100, callbacks=[checkpoint_callback])
+    model.save(model_path)
 
 
 def generate_text(model, start_string):
-    num_generate = 1000
+    num_generate = 100
     tokenizer = get_tokenizer()
-    inputs = tokenizer.texts_to_sequences([' '.join(jieba.cut(start_string))])
+    inputs = tokenizer.texts_to_sequences([[list(jieba.cut(start_string))[-1]]])
+    inputs = tf.convert_to_tensor(inputs)
 
     text_generated = []
 
@@ -129,16 +131,19 @@ def generate_text(model, start_string):
         # along with the previous hidden state
         inputs = tf.expand_dims([predicted_id], 0)
 
-        text_generated.append(tokenizer.sequences_to_texts([predicted_id])[0])
+        text_generated.append(tokenizer.sequences_to_texts([[predicted_id]])[0])
 
     return start_string + ''.join(text_generated)
 
 
-def generate():
-    model = tf.keras.models.load_model(model_path)
+def generate(start_string):
+    model = build_model(1)
+    model.load_weights(str(model_path))
     model.build(tf.TensorShape([1, None]))
-    print(generate_text(model, start_string=u"昨天"))
+    print(generate_text(model, start_string=start_string))
 
 
 if __name__ == '__main__':
-    train()
+    # train()
+    assert len(sys.argv) == 2
+    generate(sys.argv[1])
