@@ -133,13 +133,22 @@ def build_model():
 
 
 def train():
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(f'{len(gpus)} Physical GPUs, {len(logical_gpus)} Logical GPUs')
+        except RuntimeError as e:
+            print(e)
+
     vec_poems = preprocess()
     gen = train_gen(vec_poems, BATCH_SIZE)
     model = build_model()
-    model.compile(optimizer='adam', loss=tf.keras.losses.KLDivergence(), metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='mean_squared_error')
     tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
-    ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.h5'), monitor='val_acc', save_weights_only=True,
-                              period=50)
+    ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.h5'), save_weights_only=True, period=50)
     callbacks = [tb_cb, ckpt_cb]
     model.fit_generator(gen, epochs=EPOCHS, steps_per_epoch=NUM_CLEANED_POEMS // BATCH_SIZE, callbacks=callbacks)
     model.save(model_path)
@@ -177,6 +186,9 @@ def generate(start_string):
 
 
 if __name__ == '__main__':
-    # train()
-    assert len(sys.argv) == 2
-    generate(sys.argv[1])
+    if len(sys.argv) == 2 and sys.argv[1] == 'train':
+        train()
+    elif len(sys.argv) == 3 and sys.argv[1] == 'generate':
+        generate(sys.argv[2])
+    else:
+        print('args ERROR')
