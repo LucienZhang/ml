@@ -126,7 +126,7 @@ def train_gen(vec_poems, batch_size):
 def build_model():
     inputs = keras.Input(shape=(None, EMBEDDING_DIM))
     x = layers.Masking()(inputs)
-    #x = layers.LSTM(200, return_sequences=True)(x)
+    # x = layers.LSTM(200, return_sequences=True)(x)
     outputs = layers.LSTM(200, return_sequences=True)(x)
     model = Model(inputs=inputs, outputs=outputs)
     return model
@@ -136,9 +136,9 @@ def train():
     vec_poems = preprocess()
     gen = train_gen(vec_poems, BATCH_SIZE)
     model = build_model()
-    model.compile(optimizer='adam', loss=tf.keras.losses.KLDivergence())
+    model.compile(optimizer='adam', loss=tf.keras.losses.KLDivergence(), metrics=['accuracy'])
     tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
-    ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.hdf5'), monitor='val_acc', save_weights_only=True,
+    ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.h5'), monitor='val_acc', save_weights_only=True,
                               period=50)
     callbacks = [tb_cb, ckpt_cb]
     model.fit_generator(gen, epochs=EPOCHS, steps_per_epoch=NUM_CLEANED_POEMS // BATCH_SIZE, callbacks=callbacks)
