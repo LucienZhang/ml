@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 
 sys.path.append('../../..')
 
@@ -125,7 +126,7 @@ def train_gen(vec_poems, batch_size):
 def build_model():
     inputs = keras.Input(shape=(None, EMBEDDING_DIM))
     x = layers.Masking()(inputs)
-    x = layers.LSTM(200, return_sequences=True)(x)
+    #x = layers.LSTM(200, return_sequences=True)(x)
     outputs = layers.LSTM(200, return_sequences=True)(x)
     model = Model(inputs=inputs, outputs=outputs)
     return model
@@ -136,7 +137,11 @@ def train():
     gen = train_gen(vec_poems, BATCH_SIZE)
     model = build_model()
     model.compile(optimizer='adam', loss=tf.keras.losses.KLDivergence())
-    model.fit_generator(gen, epochs=EPOCHS, steps_per_epoch=NUM_CLEANED_POEMS // BATCH_SIZE)
+    tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
+    ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.hdf5'), monitor='val_acc', save_weights_only=True,
+                              period=50)
+    callbacks = [tb_cb, ckpt_cb]
+    model.fit_generator(gen, epochs=EPOCHS, steps_per_epoch=NUM_CLEANED_POEMS // BATCH_SIZE, callbacks=callbacks)
     model.save(model_path)
 
     # optimizer=tf.keras.optimizers.Adam()
@@ -148,5 +153,30 @@ def train():
     #         loss=tf.reduce_mean(tf.keras.losses.sparse_categorical_crossentropy)
 
 
+def generate(start_string):
+    if start_string not in wv:
+        return
+    model = build_model()
+    model.load_weights(str(model_path))
+
+    num_generate = 100
+    inputs = wv[start_string]
+
+    text_generated = []
+
+    model.reset_states()
+    for i in range(num_generate):
+        predictions = model(inputs)
+        # remove the batch dimension
+        vector = tf.squeeze(predictions, 0).numpy()
+        text_generated.append(wv.similar_by_vector(vector)[0])
+
+        inputs = tf.expand_dims(predictions, 0)
+
+    print(start_string + ''.join(text_generated))
+
+
 if __name__ == '__main__':
-    train()
+    # train()
+    assert len(sys.argv) == 2
+    generate(sys.argv[1])
