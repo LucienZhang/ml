@@ -42,7 +42,8 @@ def get_dataset(dataset_name, as_supervised=True):
 dataset_urls = {
     'fruits': 'fruits-360_dataset/fruits-360/',
     'shuihu': '水浒传.txt',
-    'tencent_embedding': 'word_vectors.bin'
+    'tencent_embedding': 'word_vectors_1m.bin',
+    'poem': 'poem.txt'
 }
 
 
