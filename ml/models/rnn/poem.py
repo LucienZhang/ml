@@ -129,7 +129,7 @@ def train_gen(seq_poems, batch_size):
                 item = np.pad(item, (0, max_len - len(item)), 'constant', constant_values=0)
                 item = item[np.newaxis, :]
                 chunk = np.vstack((chunk, item))
-            yield chunk[:, :-1, :], chunk[:, 1:, :]
+            yield chunk[:, :-1], chunk[:, 1:]
 
 
 def build_model():
