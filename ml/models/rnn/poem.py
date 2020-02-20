@@ -29,8 +29,9 @@ if experiment_name:
 model_file_name += '.h5'
 model_path = model_dir / model_file_name
 
+NUM_VOCAB = 1000000
 EMBEDDING_DIM = 200
-BATCH_SIZE = 64
+BATCH_SIZE = 512
 EPOCHS = 200
 NUM_CLEANED_POEMS = 30879
 
@@ -92,42 +93,56 @@ def preprocess():
             vec.append(wv[w])
         return vec
 
-    vec_poems = []
+    def to_sequence(poem):
+        seq = []
+        for w in poem:
+            if w not in wv:
+                return None
+            seq.append(wv.vocab[w].index)
+        return seq
+
+    seq_poems = []
     for p in poems:
-        v = to_vec(p)
-        if v:
-            vec_poems.append(v)
+        seq = to_sequence(p)
+        if seq:
+            seq_poems.append(seq)
 
-    print('number of cleaned poems:', len(vec_poems))
-    # print('length:', Counter([len(p) for p in vec_poems]))
+    print('number of cleaned poems:', len(seq_poems))
+    # print('length:', Counter([len(p) for p in seq_poems]))
 
-    return vec_poems
+    return seq_poems
 
 
 #################################
 # MODEL
 #################################
-def train_gen(vec_poems, batch_size):
+def train_gen(seq_poems, batch_size):
     while True:
-        np.random.shuffle(vec_poems)
-        for i in range(0, len(vec_poems), batch_size):
-            batch = vec_poems[i:i + batch_size]
-            if len(batch) != batch_size:
-                continue
+        np.random.shuffle(seq_poems)
+        for i in range(0, len(seq_poems), batch_size):
+            batch = seq_poems[i:i + batch_size]
+            # if len(batch) != batch_size:
+            #     continue
             max_len = max([len(item) for item in batch]) + 1
-            chunk = np.empty((0, max_len, EMBEDDING_DIM), dtype='float32')
+            chunk = np.empty((0, max_len), dtype='int32')
             for item in batch:
-                item = np.pad(item, ((0, max_len - len(item)), (0, 0)), 'constant', constant_values=0)
+                item = np.pad(item, (0, max_len - len(item)), 'constant', constant_values=0)
                 item = item[np.newaxis, :]
                 chunk = np.vstack((chunk, item))
             yield chunk[:, :-1, :], chunk[:, 1:, :]
 
 
 def build_model():
-    inputs = keras.Input(shape=(None, EMBEDDING_DIM))
-    x = layers.Masking()(inputs)
-    # x = layers.LSTM(200, return_sequences=True)(x)
-    outputs = layers.LSTM(200, return_sequences=True)(x)
+    embedding_weights = wv.vectors
+
+    inputs = keras.Input(shape=(None,), dtype='int32')
+    x = layers.Embedding(
+        input_dim=embedding_weights.shape[0], output_dim=embedding_weights.shape[1],
+        weights=[embedding_weights], trainable=False, mask_zero=True
+    )(inputs)
+    x = layers.LSTM(200, return_sequences=True)(x)
+    x = layers.LSTM(200, return_sequences=True)(x)
+    outputs = layers.Dense(NUM_VOCAB, activation='softmax')(x)
     model = Model(inputs=inputs, outputs=outputs)
     return model
 
@@ -143,10 +158,10 @@ def train():
         except RuntimeError as e:
             print(e)
 
-    vec_poems = preprocess()
-    gen = train_gen(vec_poems, BATCH_SIZE)
+    seq_poems = preprocess()
+    gen = train_gen(seq_poems, BATCH_SIZE)
     model = build_model()
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
     tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=0)
     ckpt_cb = ModelCheckpoint(filepath=str(log_dir / '{epoch:02d}.h5'), save_weights_only=True, period=50)
     callbacks = [tb_cb, ckpt_cb]
@@ -170,6 +185,7 @@ def generate(start_string):
 
     num_generate = 100
     inputs = wv[start_string]
+    inputs = inputs[np.newaxis, np.newaxis, :]
 
     text_generated = []
 
@@ -177,10 +193,10 @@ def generate(start_string):
     for i in range(num_generate):
         predictions = model(inputs)
         # remove the batch dimension
-        vector = tf.squeeze(predictions, 0).numpy()
-        text_generated.append(wv.similar_by_vector(vector)[0])
+        vector = tf.squeeze(predictions).numpy()
+        text_generated.append(wv.similar_by_vector(vector)[0][0])
 
-        inputs = tf.expand_dims(predictions, 0)
+        inputs = predictions
 
     print(start_string + ''.join(text_generated))
 
