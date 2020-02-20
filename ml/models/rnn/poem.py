@@ -15,7 +15,7 @@ sys.path.append('../../..')
 from ml import get_model_dir, get_log_dir  # noqa
 from ml.datasets import get_data_path  # noqa
 
-wv_path = get_data_path('tencent_embedding')
+wv_path = get_data_path('tencent_embedding_100k')
 poem_path = get_data_path('poem')
 
 model_name = 'rnn'
@@ -29,11 +29,11 @@ if experiment_name:
 model_file_name += '.h5'
 model_path = model_dir / model_file_name
 
-NUM_VOCAB = 1000000
+NUM_VOCAB = 100000
 EMBEDDING_DIM = 200
 BATCH_SIZE = 512
 EPOCHS = 200
-NUM_CLEANED_POEMS = 30879
+NUM_CLEANED_POEMS = 0
 
 wv = KeyedVectors.load(str(wv_path))
 assert EMBEDDING_DIM == 200
@@ -108,6 +108,8 @@ def preprocess():
             seq_poems.append(seq)
 
     print('number of cleaned poems:', len(seq_poems))
+    global NUM_CLEANED_POEMS
+    NUM_CLEANED_POEMS = len(seq_poems)
     # print('length:', Counter([len(p) for p in seq_poems]))
 
     return seq_poems
@@ -141,7 +143,7 @@ def build_model():
         weights=[embedding_weights], trainable=False, mask_zero=True
     )(inputs)
     x = layers.LSTM(200, return_sequences=True)(x)
-    x = layers.LSTM(200, return_sequences=True)(x)
+    # x = layers.LSTM(200, return_sequences=True)(x)
     outputs = layers.Dense(NUM_VOCAB, activation='softmax')(x)
     model = Model(inputs=inputs, outputs=outputs)
     return model
@@ -204,6 +206,8 @@ def generate(start_string):
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'train':
         train()
+    elif len(sys.argv) == 2 and sys.argv[1] == 'pre':
+        preprocess()
     elif len(sys.argv) == 3 and sys.argv[1] == 'generate':
         generate(sys.argv[2])
     else:
