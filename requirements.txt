@@ -1,0 +1,11 @@
+#python==3.7.5
+matplotlib
+numpy
+pillow
+tensorflow-datasets
+scipy
+cython
+jieba
+gensim
+pandas
+tensorflow>=2.1.0

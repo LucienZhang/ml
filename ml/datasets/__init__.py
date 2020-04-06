@@ -44,7 +44,8 @@ dataset_urls = {
     'shuihu': '水浒传.txt',
     'tencent_embedding_1m': 'word_vectors_1m.bin',
     'tencent_embedding_100k': 'word_vectors_100k.bin',
-    'poem': 'poem.txt'
+    'poem': 'poem.txt',
+    'weibo': 'weibo_senti_100k/weibo_senti_100k.csv'
 }
 
 

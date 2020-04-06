@@ -186,8 +186,7 @@ def generate(start_string):
     model.load_weights(str(model_path))
 
     num_generate = 100
-    inputs = wv[start_string]
-    inputs = inputs[np.newaxis, np.newaxis, :]
+    inputs = np.array(wv.vocab[start_string].index).reshape(1, 1)
 
     text_generated = []
 
@@ -195,10 +194,11 @@ def generate(start_string):
     for i in range(num_generate):
         predictions = model(inputs)
         # remove the batch dimension
-        vector = tf.squeeze(predictions).numpy()
-        text_generated.append(wv.similar_by_vector(vector)[0][0])
+        predictions = tf.squeeze(predictions)
+        predicted_id = tf.argmax(predictions).numpy()
+        text_generated.append(wv.index2word[int(predicted_id)])
 
-        inputs = predictions
+        inputs = predicted_id.reshape(1, 1)
 
     print(start_string + ''.join(text_generated))
 
